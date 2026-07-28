@@ -1,0 +1,56 @@
+{
+  "method": "explicit cross-file reference graph; descriptive, not an authority score",
+  "file_count": 33,
+  "total_bytes": 4131550,
+  "top_centrality": [
+    [
+      "01_PARITY_ADVANCEMENT_MANIFEST.md",
+      0.05166408453887633
+    ],
+    [
+      "29_INDEX_UPLOAD_MANIFEST.md",
+      0.024640408315496097
+    ],
+    [
+      "00_PROJECT_ROUTER.md",
+      0.018420043437973998
+    ],
+    [
+      "12_COUNCIL_VOICES.md",
+      0.015614958470028853
+    ],
+    [
+      "14_MEMORY_MODEL.md",
+      0.013592883799554591
+    ],
+    [
+      "28_EVALS_ACCEPTANCE.md",
+      0.01327647792737428
+    ],
+    [
+      "11_SLO_PLAYBOOK_CONTROL.md",
+      0.013064366586344049
+    ],
+    [
+      "08_STATECYCLE_RUNTIME.md",
+      0.011095467899909423
+    ],
+    [
+      "10_ENTROPY_FRACTAL_EWS.md",
+      0.010383029421915968
+    ],
+    [
+      "13_OUTPUT_RECEIPTS_ANTI_EMPTY.md",
+      0.010188925183380623
+    ],
+    [
+      "09_METRICS_ENGINE.md",
+      0.009798517908787982
+    ],
+    [
+      "15_SUPABASE_MEMORY_PLANE.md",
+      0.009256207782030857
+    ]
+  ],
+  "top_normative_markers": []
+}

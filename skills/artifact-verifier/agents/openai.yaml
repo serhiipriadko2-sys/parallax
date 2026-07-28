@@ -1,0 +1,11 @@
+interface:
+  display_name: "Artifact Verifier"
+  short_description: "Verify package integrity, archive safety, hashes, scope, and readiness claims."
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+    - chatgpt
+    - codex
+    - api
+  allow_implicit_invocation: true

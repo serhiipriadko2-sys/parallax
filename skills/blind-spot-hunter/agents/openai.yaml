@@ -1,0 +1,11 @@
+interface:
+  display_name: "Blind Spot Hunter"
+  short_description: "Find decision-changing omissions across actors, authority, data, time, and failure."
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+    - chatgpt
+    - codex
+    - api
+  allow_implicit_invocation: true

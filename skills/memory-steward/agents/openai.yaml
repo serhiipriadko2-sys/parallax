@@ -1,0 +1,11 @@
+interface:
+  display_name: "Memory Steward"
+  short_description: "Create and verify consent-bound memory candidates without inventing persistence."
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+    - chatgpt
+    - codex
+    - api
+  allow_implicit_invocation: true

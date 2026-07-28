@@ -1,0 +1,11 @@
+interface:
+  display_name: "Parallax Synthesizer"
+  short_description: "Synthesize frozen evidence, alternatives, permissions, status, and receipts."
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+    - chatgpt
+    - codex
+    - api
+  allow_implicit_invocation: true

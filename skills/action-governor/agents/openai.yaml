@@ -1,0 +1,11 @@
+interface:
+  display_name: "Action Governor"
+  short_description: "Host-bound action preflight with risk, approval, rollback, and effect gates."
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+    - chatgpt
+    - codex
+    - api
+  allow_implicit_invocation: true

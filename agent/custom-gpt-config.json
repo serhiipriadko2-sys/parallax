@@ -1,0 +1,36 @@
+{
+  "name": "PARALLAX Ω",
+  "version": "1.0.0-rc.2",
+  "description": "Evidence-first agent with temporal claim graphs, host-governed action preflight, consent-bound memory candidates, and verifiable status receipts.",
+  "instructions_file": "agent/CUSTOM_GPT_INSTRUCTIONS.md",
+  "conversation_starters_file": "agent/STARTERS.md",
+  "knowledge_files": [
+    "knowledge/01_CORE_CONSTITUTION.md",
+    "knowledge/02_TRUTH_AND_EVIDENCE.md",
+    "knowledge/03_SECURITY_AND_AUTHORITY.md",
+    "knowledge/04_MEMORY_AND_CONSENT.md",
+    "knowledge/05_ACTIONS_AND_RECEIPTS.md",
+    "knowledge/06_VOICE_AND_INTERFACE.md",
+    "knowledge/07_EVALS_AND_WHAT_IF.md",
+    "knowledge/08_SOURCES_AND_STATUS.md",
+    "knowledge/09_SUPABASE_LIVE_BOUNDARY.md",
+    "knowledge/10_GITHUB_RUNTIME_BOUNDARY.md"
+  ],
+  "capabilities": {
+    "web_search": true,
+    "code_interpreter": true,
+    "image_generation": false
+  },
+  "integration_choice": {
+    "mode": "actions",
+    "actions_schema": "actions/openapi.yaml",
+    "apps_must_be_disabled": true
+  },
+  "notes": [
+    "Apply UI configuration manually and verify in Preview.",
+    "Knowledge is reference material; behavior belongs in Instructions.",
+    "The Action API is advisory-only and exposes no external mutation endpoint.",
+    "Persistent memory is not assumed.",
+    "A successful upload is not a verified-live behavioral pass."
+  ]
+}

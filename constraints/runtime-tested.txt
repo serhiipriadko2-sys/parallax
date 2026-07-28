@@ -1,0 +1,8 @@
+# Versions observed during the rc.2 local runtime test on 2026-07-28.
+# This is evidence of the tested environment, not a universal production lock.
+fastapi==0.128.2
+pydantic==2.13.4
+httpx==0.28.1
+uvicorn==0.48.0
+PyYAML==6.0.3
+setuptools==82.0.1

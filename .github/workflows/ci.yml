@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: core-py${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: PYTHONDONTWRITEBYTECODE=1 python scripts/run_tests.py --profile core
+      - run: python scripts/run_evals.py
+      - run: python scripts/validate_package.py --skip-ledger
+      - run: python scripts/secret_scan.py
+
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[runtime,dev]'
+      - run: PYTHONDONTWRITEBYTECODE=1 python scripts/run_tests.py --profile runtime
+      - run: python scripts/validate_package.py --skip-ledger
+      - run: ruff check runtime tests scripts agents_sdk adapters
+      - run: mypy runtime/parallax_omega
+
+  optional-openai-surfaces:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[runtime,openai]'
+      - run: PYTHONDONTWRITEBYTECODE=1 python scripts/run_tests.py --profile openai
+      - run: PYTHONDONTWRITEBYTECODE=1 python scripts/verify_optional_surfaces.py --require all

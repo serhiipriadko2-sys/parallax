@@ -1,0 +1,11 @@
+interface:
+  display_name: "Evidence Compiler"
+  short_description: "Compile claims into a temporal dependency graph with invalidation and ceilings."
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+    - chatgpt
+    - codex
+    - api
+  allow_implicit_invocation: true
