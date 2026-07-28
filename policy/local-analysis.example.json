@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "default": "deny",
+  "rules": [
+    {
+      "tool": "local",
+      "operation": "parse",
+      "max_risk": "R0",
+      "scope_prefixes": [
+        "input",
+        "workspace/read-only"
+      ]
+    }
+  ]
+}

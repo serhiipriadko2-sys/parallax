@@ -1,0 +1,11 @@
+interface:
+  display_name: "Counterfactual Fork"
+  short_description: "Build bounded what-if branches with discriminating evidence and stop conditions."
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+    - chatgpt
+    - codex
+    - api
+  allow_implicit_invocation: true

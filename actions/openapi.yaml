@@ -1,0 +1,133 @@
+openapi: 3.1.0
+info:
+  title: PARALLAX Ω Advisory Actions API
+  version: 1.0.0-rc.2
+  description: >-
+    Advisory action preflight and non-persistent memory-candidate generation.
+    This API exposes no endpoint that writes to an external system or durable memory.
+servers:
+  - url: https://YOUR_DEPLOYMENT.example.com
+paths:
+  /health:
+    get:
+      operationId: getParallaxHealth
+      summary: Check service and safe-default status
+      responses:
+        '200':
+          description: Health status
+          headers:
+            x-request-id:
+              schema: {type: string}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /v1/actions/preflight:
+    post:
+      operationId: preflightAction
+      summary: Evaluate an action proposal without executing it
+      description: >-
+        Authorization policy is supplied by the server host, not by model-controlled
+        request fields. The response is advisory and always states that execution did not occur.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionProposal'
+      responses:
+        '200':
+          description: Advisory preflight decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionPreflightResponse'
+        '401': {description: Invalid bearer credential}
+        '422': {description: Invalid request shape}
+        '503': {description: API credential not configured}
+  /v1/memory/candidates:
+    post:
+      operationId: proposeMemoryCandidate
+      summary: Create a non-persistent candidate for user review
+      description: The endpoint cannot commit or verify durable memory.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemoryProposal'
+      responses:
+        '200':
+          description: Non-persistent memory candidate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryCandidateResponse'
+        '401': {description: Invalid bearer credential}
+        '422': {description: Invalid or prohibited candidate}
+        '503': {description: API credential not configured}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    HealthResponse:
+      type: object
+      required: [ok, service, version, memory, external_writes, policy_mode]
+      properties:
+        ok: {type: boolean}
+        service: {type: string}
+        version: {type: string}
+        memory: {type: string}
+        external_writes: {type: string}
+        policy_mode: {type: string, enum: [deny_all, read_only, allowlist]}
+      additionalProperties: false
+    ActionProposal:
+      type: object
+      required: [action_id, tool, operation, scope, risk]
+      additionalProperties: false
+      properties:
+        action_id: {type: string, minLength: 1, maxLength: 128}
+        tool: {type: string, minLength: 1, maxLength: 128}
+        operation: {type: string, minLength: 1, maxLength: 128}
+        scope: {type: string, minLength: 1, maxLength: 1024}
+        risk: {type: string, enum: [R0, R1, R2, R3, R4]}
+        evidence_claim_ids:
+          type: array
+          maxItems: 64
+          items: {type: string}
+          default: []
+        irreversible: {type: boolean, default: false}
+    ActionPreflightResponse:
+      type: object
+      required: [advisory, execution_performed, policy_mode, action_fingerprint, decision]
+      additionalProperties: false
+      properties:
+        advisory: {type: boolean, const: true}
+        execution_performed: {type: boolean, const: false}
+        policy_mode: {type: string, enum: [deny_all, read_only, allowlist]}
+        action_fingerprint: {type: string, pattern: '^[0-9a-f]{64}$'}
+        decision: {type: object}
+    MemoryProposal:
+      type: object
+      required: [content, purpose, deletion_path]
+      additionalProperties: false
+      properties:
+        content: {type: string, minLength: 1, maxLength: 10000}
+        purpose: {type: string, minLength: 1, maxLength: 500}
+        sensitivity: {type: string, minLength: 1, maxLength: 64, default: normal}
+        retention_days: {type: integer, minimum: 1, maximum: 365, default: 30}
+        target: {type: string, enum: [journal, open_loop, shadow], default: journal}
+        deletion_path: {type: string, minLength: 1, maxLength: 1024}
+    MemoryCandidateResponse:
+      type: object
+      required: [persistent, execution_performed, candidate, candidate_fingerprint]
+      additionalProperties: false
+      properties:
+        persistent: {type: boolean, const: false}
+        execution_performed: {type: boolean, const: false}
+        candidate: {type: object}
+        candidate_fingerprint: {type: string, pattern: '^[0-9a-f]{64}$'}
