@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import sys
+
+sys.dont_write_bytecode = True
+
 import argparse
 import hashlib
 import json
 import re
-import sys
 import tomllib
 import zipfile
 from pathlib import Path, PurePosixPath
+
+from release_policy import VCS_PARTS, files_for_ledger
 
 try:
     import yaml
@@ -16,7 +21,7 @@ except ImportError:  # pragma: no cover
     yaml = None
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.0.0-rc.2"
+VERSION = "1.0.0-rc.3"
 REQUIRED = [
     "README.md", "ARCHITECTURE.md", "SECURITY.md", "PRIVACY.md", "LICENSE",
     "pyproject.toml", "agent/WORKSPACE_AGENT_INSTRUCTIONS.md",
@@ -28,6 +33,11 @@ REQUIRED = [
 ]
 NOISE_PARTS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "build"}
 NOISE_NAMES = {".DS_Store", "Thumbs.db"}
+# yaml.YAMLError only exists when PyYAML imported; build the handler tuple once so the
+# `except` clause stays a plain tuple of exception classes.
+SKILL_PARSE_ERRORS: tuple[type[BaseException], ...] = (
+    (ValueError, RuntimeError, yaml.YAMLError) if yaml is not None else (ValueError, RuntimeError)
+)
 
 
 def sha(path: Path) -> str:
@@ -52,11 +62,77 @@ def parse_frontmatter(path: Path) -> dict[str, object]:
     return data
 
 
+def parse_ledger_text(text: str, errors: list[str], label: str) -> dict[str, str]:
+    entries: dict[str, str] = {}
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        try:
+            digest, rel = line.split("  ", 1)
+        except ValueError:
+            fail(errors, f"{label}_format:{line_number}")
+            continue
+        if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest.lower()):
+            fail(errors, f"{label}_digest:{line_number}")
+            continue
+        if not rel or rel in entries:
+            fail(errors, f"{label}_duplicate:{rel or line_number}")
+            continue
+        entries[rel] = digest.lower()
+    return entries
+
+
+def validate_embedded_ledger(
+    archive: zipfile.ZipFile,
+    names: set[str],
+    errors: list[str],
+    label: str,
+) -> None:
+    ledger_members = sorted(name for name in names if name.endswith("SHA256SUMS"))
+    if not ledger_members:
+        return
+    if len(ledger_members) != 1:
+        fail(errors, f"embedded_ledger_count:{label}")
+        return
+    ledger_member = ledger_members[0]
+    prefix = ledger_member[: -len("SHA256SUMS")]
+    manifest_member = f"{prefix}MANIFEST.json"
+    if manifest_member not in names:
+        fail(errors, f"embedded_manifest_missing:{label}")
+        return
+    outside = sorted(name for name in names if not name.startswith(prefix))
+    for name in outside:
+        fail(errors, f"zip_outside_release_root:{label}:{name}")
+
+    entries = parse_ledger_text(
+        archive.read(ledger_member).decode("utf-8"), errors, f"embedded_ledger:{label}"
+    )
+    payload = {
+        name[len(prefix):]
+        for name in names
+        if name.startswith(prefix) and name not in {ledger_member, manifest_member}
+    }
+    ledger_set = set(entries)
+    for rel in sorted(payload - ledger_set):
+        fail(errors, f"embedded_unlisted_file:{label}:{rel}")
+    for rel in sorted(ledger_set - payload):
+        fail(errors, f"embedded_missing_file:{label}:{rel}")
+    for rel, digest in entries.items():
+        member = f"{prefix}{rel}"
+        if member in names and hashlib.sha256(archive.read(member)).hexdigest() != digest:
+            fail(errors, f"embedded_hash:{label}:{rel}")
+    try:
+        manifest = json.loads(archive.read(manifest_member).decode("utf-8"))
+        if manifest.get("file_count_ledger") != len(entries):
+            fail(errors, f"embedded_manifest_ledger_count:{label}")
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        fail(errors, f"embedded_manifest_parse:{label}")
+
+
 def validate_zip(path: Path, errors: list[str]) -> None:
     try:
         with zipfile.ZipFile(path) as archive:
+            label = path.relative_to(ROOT).as_posix()
             if archive.testzip():
-                fail(errors, f"zip_crc:{path.relative_to(ROOT)}")
+                fail(errors, f"zip_crc:{label}")
             names: set[str] = set()
             folded: dict[str, str] = {}
             for info in archive.infolist():
@@ -64,15 +140,16 @@ def validate_zip(path: Path, errors: list[str]) -> None:
                     continue
                 rel = PurePosixPath(info.filename)
                 if rel.is_absolute() or ".." in rel.parts or "\\" in info.filename:
-                    fail(errors, f"unsafe_zip:{path.relative_to(ROOT)}:{info.filename}")
+                    fail(errors, f"unsafe_zip:{label}:{info.filename}")
                 if info.filename in names:
-                    fail(errors, f"duplicate_zip:{path.relative_to(ROOT)}:{info.filename}")
+                    fail(errors, f"duplicate_zip:{label}:{info.filename}")
                 names.add(info.filename)
                 key = info.filename.casefold()
                 if key in folded and folded[key] != info.filename:
-                    fail(errors, f"case_collision_zip:{path.relative_to(ROOT)}:{info.filename}")
+                    fail(errors, f"case_collision_zip:{label}:{info.filename}")
                 folded[key] = info.filename
-    except zipfile.BadZipFile:
+            validate_embedded_ledger(archive, names, errors, label)
+    except (zipfile.BadZipFile, UnicodeDecodeError):
         fail(errors, f"bad_zip:{path.relative_to(ROOT)}")
 
 
@@ -87,7 +164,12 @@ def main() -> int:
         if not path.is_file() or path.stat().st_size == 0:
             fail(errors, f"missing_or_empty:{rel}")
 
-    paths = [path for path in ROOT.rglob("*") if path.is_file()]
+    paths = [
+        path
+        for path in ROOT.rglob("*")
+        if path.is_file()
+        and not any(part in VCS_PARTS for part in path.relative_to(ROOT).parts)
+    ]
     folded: dict[str, str] = {}
     for path in paths:
         rel = path.relative_to(ROOT).as_posix()
@@ -124,7 +206,7 @@ def main() -> int:
                 metadata = yaml.safe_load((skill / "agents/openai.yaml").read_text(encoding="utf-8"))
                 if not isinstance(metadata, dict) or "interface" not in metadata:
                     fail(errors, f"skill_openai_yaml:{skill.name}")
-        except (ValueError, RuntimeError, yaml.YAMLError if yaml else ValueError):
+        except SKILL_PARSE_ERRORS:
             fail(errors, f"skill_parse:{skill.name}")
 
     try:
@@ -137,7 +219,7 @@ def main() -> int:
 
     try:
         pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-        if pyproject["project"]["version"] != "1.0.0rc2":
+        if pyproject["project"]["version"] != "1.0.0rc3":
             fail(errors, "pyproject_version")
     except (tomllib.TOMLDecodeError, KeyError, TypeError):
         fail(errors, "pyproject_parse")
@@ -181,23 +263,33 @@ def main() -> int:
         if not sums.is_file() or not manifest_path.is_file():
             fail(errors, "ledger_missing")
         else:
-            lines = sums.read_text(encoding="utf-8").splitlines()
-            for line in lines:
-                try:
-                    digest, rel = line.split("  ", 1)
-                except ValueError:
-                    fail(errors, "ledger_format")
-                    continue
+            entries = parse_ledger_text(
+                sums.read_text(encoding="utf-8"), errors, "ledger"
+            )
+            disk_files = files_for_ledger(ROOT)
+            disk_set = {path.relative_to(ROOT).as_posix() for path in disk_files}
+            ledger_set = set(entries)
+            for rel in sorted(disk_set - ledger_set):
+                fail(errors, f"unlisted_file:{rel}")
+            for rel in sorted(ledger_set - disk_set):
+                fail(errors, f"ledger_missing_file:{rel}")
+            for rel, digest in entries.items():
                 path = ROOT / rel
-                if not path.is_file() or sha(path) != digest:
+                if path.is_file() and sha(path) != digest:
                     fail(errors, f"hash:{rel}")
             try:
                 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
                 if manifest.get("version") != VERSION:
                     fail(errors, "manifest_version")
-                if manifest.get("file_count_ledger") != len(lines):
+                if manifest.get("file_count_ledger") != len(entries):
                     fail(errors, "manifest_ledger_count")
-                if manifest.get("eval_cases") != 72:
+                if manifest.get("file_count_ledger") != len(disk_set):
+                    fail(errors, "manifest_disk_count")
+                if manifest.get("total_bytes_ledger") != sum(
+                    path.stat().st_size for path in disk_files
+                ):
+                    fail(errors, "manifest_ledger_bytes")
+                if manifest.get("eval_cases") != 74:
                     fail(errors, "manifest_eval_count")
             except json.JSONDecodeError:
                 fail(errors, "manifest_parse")

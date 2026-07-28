@@ -1,0 +1,101 @@
+{
+  "attestation": {
+    "required": true,
+    "subject": "mcp/tool-manifest.json",
+    "type": "github-build-provenance"
+  },
+  "manifest_payload_sha256": "68ce28c8e3c8ee19221e44188002386c035235a6b15a0ed142056bda1927cabc",
+  "schema_version": "1.0",
+  "source": "adapters/mcp_server.py",
+  "source_sha256": "8a0c8bf9c15e810c835c0700f376f9e9b6bdb489b2b2e22cff7b217857c4463f",
+  "surface": "mcp",
+  "tools": [
+    {
+      "description": "Return an advisory decision. Model arguments cannot grant policy authority.",
+      "name": "evaluate_action",
+      "parameters": [
+        {
+          "annotation": "str",
+          "default": null,
+          "name": "action_id",
+          "required": true
+        },
+        {
+          "annotation": "str",
+          "default": null,
+          "name": "tool",
+          "required": true
+        },
+        {
+          "annotation": "str",
+          "default": null,
+          "name": "operation",
+          "required": true
+        },
+        {
+          "annotation": "str",
+          "default": null,
+          "name": "scope",
+          "required": true
+        },
+        {
+          "annotation": "str",
+          "default": null,
+          "name": "risk",
+          "required": true
+        },
+        {
+          "annotation": "bool",
+          "default": "False",
+          "name": "irreversible",
+          "required": false
+        }
+      ],
+      "returns": "dict"
+    },
+    {
+      "description": "Create a non-persistent memory candidate for explicit user review.",
+      "name": "propose_memory",
+      "parameters": [
+        {
+          "annotation": "str",
+          "default": null,
+          "name": "content",
+          "required": true
+        },
+        {
+          "annotation": "str",
+          "default": null,
+          "name": "purpose",
+          "required": true
+        },
+        {
+          "annotation": "str",
+          "default": "'journal'",
+          "name": "target",
+          "required": false
+        },
+        {
+          "annotation": "int",
+          "default": "30",
+          "name": "retention_days",
+          "required": false
+        },
+        {
+          "annotation": "str",
+          "default": "'deployment-defined'",
+          "name": "deletion_path",
+          "required": false
+        }
+      ],
+      "returns": "dict"
+    },
+    {
+      "description": "Report safe defaults. This tool performs no external action.",
+      "name": "server_status",
+      "parameters": [],
+      "returns": "dict"
+    }
+  ],
+  "version": "1.0.0-rc.3"
+}

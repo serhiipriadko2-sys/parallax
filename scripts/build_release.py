@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import sys
+
+sys.dont_write_bytecode = True
+
 import argparse
 import hashlib
 import json
@@ -8,33 +12,17 @@ import os
 import zipfile
 from pathlib import Path
 
+from release_policy import files_for_ledger
+
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.0.0-rc.2"
+VERSION = "1.0.0-rc.3"
 FIXED_TIME = (2026, 7, 28, 0, 0, 0)
-EXCLUDE_NAMES = {"SHA256SUMS", "MANIFEST.json"}
-NOISE_PARTS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "build"}
-
-
 def digest(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
-
-
-def is_release_file(path: Path) -> bool:
-    if not path.is_file() or path.is_symlink() or path.name in EXCLUDE_NAMES:
-        return False
-    if path.suffix.lower() in {".pyc", ".pyo"}:
-        return False
-    if any(part in NOISE_PARTS or part.endswith(".egg-info") for part in path.parts):
-        return False
-    return True
-
-
-def files_for_ledger() -> list[Path]:
-    return [path for path in sorted(ROOT.rglob("*")) if is_release_file(path)]
 
 
 def add_deterministic(archive: zipfile.ZipFile, path: Path, arcname: str) -> None:
@@ -48,10 +36,10 @@ def add_deterministic(archive: zipfile.ZipFile, path: Path, arcname: str) -> Non
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=Path, default=ROOT.parent / f"{ROOT.name}-rc2.zip")
+    parser.add_argument("--output", type=Path, default=ROOT.parent / f"{ROOT.name}-rc3.zip")
     args = parser.parse_args()
 
-    files = files_for_ledger()
+    files = files_for_ledger(ROOT)
     (ROOT / "SHA256SUMS").write_text(
         "".join(f"{digest(path)}  {path.relative_to(ROOT).as_posix()}\n" for path in files),
         encoding="utf-8",

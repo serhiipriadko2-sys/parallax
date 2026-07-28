@@ -1,35 +1,56 @@
 """Optional MCP server with advisory-only, server-owned authorization policy."""
 from __future__ import annotations
 
-from dataclasses import asdict
+import os
 
 try:
     from mcp.server.fastmcp import FastMCP
 except ImportError as exc:  # pragma: no cover
     raise RuntimeError("Install the openai extra: pip install -e '.[openai]'") from exc
 
-from parallax_omega.authority import ActionGovernor
-from parallax_omega.claim_graph import ClaimGraph
-from parallax_omega.memory import MemorySteward
+from parallax_omega.kernel import ParallaxKernel
 from parallax_omega.models import ActionRequest, RiskLevel
 from parallax_omega.policy import HostPolicyAdapter
+from parallax_omega.rate_limit import RateLimitPolicy, SlidingWindowRateLimiter
 
 mcp = FastMCP("PARALLAX Ω")
-graph = ClaimGraph()
-governor = ActionGovernor()
-steward = MemorySteward()
+
+
+def _positive_int(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+_limiter = SlidingWindowRateLimiter(
+    RateLimitPolicy(
+        limit=_positive_int("PARALLAX_MCP_RATE_LIMIT", 60),
+        window_seconds=float(_positive_int("PARALLAX_MCP_RATE_WINDOW_SECONDS", 60)),
+    )
+)
+_policy_adapter = HostPolicyAdapter.from_env(
+    "PARALLAX_MCP_POLICY_MODE",
+    "PARALLAX_MCP_POLICY_FILE",
+    "PARALLAX_MCP_POLICY_ROOT",
+    "PARALLAX_MCP_POLICY_SHA256",
+)
 
 
 @mcp.tool()
 def server_status() -> dict:
     """Report safe defaults. This tool performs no external action."""
-    adapter = HostPolicyAdapter.from_env("PARALLAX_MCP_POLICY_MODE", "PARALLAX_MCP_POLICY_FILE")
+    _limiter.check("server_status")
     return {
         "service": "parallax-omega-mcp",
-        "version": "1.0.0-rc.2",
-        "policy_mode": adapter.mode.value,
+        "version": "1.0.0-rc.3",
+        "policy_mode": _policy_adapter.mode.value,
+        "policy_hash": _policy_adapter.policy_hash,
         "external_writes": "not_exposed",
         "memory": "candidate_only",
+        "state_model": "stateless-per-call",
+        "rate_limit": "process-backstop; identity-aware gateway required",
     }
 
 
@@ -43,6 +64,7 @@ def evaluate_action(
     irreversible: bool = False,
 ) -> dict:
     """Return an advisory decision. Model arguments cannot grant policy authority."""
+    _limiter.check("evaluate_action")
     request = ActionRequest(
         action_id=action_id,
         tool=tool,
@@ -51,14 +73,19 @@ def evaluate_action(
         risk=RiskLevel(risk),
         irreversible=irreversible,
     )
-    adapter = HostPolicyAdapter.from_env("PARALLAX_MCP_POLICY_MODE", "PARALLAX_MCP_POLICY_FILE")
-    decision = governor.decide(request, adapter.context_for(request), graph)
+    result = ParallaxKernel().evaluate_action(
+        request,
+        _policy_adapter.context_for(request),
+        surface="mcp",
+    )
+    decision = result["decision"]
     return {
         "advisory": True,
         "execution_performed": False,
-        "policy_mode": adapter.mode.value,
-        "action_fingerprint": request.fingerprint(),
-        "decision": asdict(decision),
+        "policy_mode": _policy_adapter.mode.value,
+        "action_fingerprint": decision["action_fingerprint"],
+        "decision": decision,
+        "receipt": result["receipt"],
     }
 
 
@@ -71,7 +98,9 @@ def propose_memory(
     deletion_path: str = "deployment-defined",
 ) -> dict:
     """Create a non-persistent memory candidate for explicit user review."""
-    candidate = steward.propose(
+    _limiter.check("propose_memory")
+    result = ParallaxKernel().propose_memory(
+        surface="mcp",
         content=content,
         purpose=purpose,
         sensitivity="normal",
@@ -82,8 +111,9 @@ def propose_memory(
     return {
         "persistent": False,
         "execution_performed": False,
-        "candidate": asdict(candidate),
-        "candidate_fingerprint": candidate.fingerprint(),
+        "candidate": result["candidate"],
+        "candidate_fingerprint": result["receipt"]["payload"]["candidate_fingerprint"],
+        "receipt": result["receipt"],
     }
 
 

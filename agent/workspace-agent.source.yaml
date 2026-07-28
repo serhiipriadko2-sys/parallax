@@ -4,7 +4,7 @@ api_version: parallax.openai/v1alpha2
 kind: WorkspaceAgentSourceDescriptor
 metadata:
   name: parallax-omega
-  version: 1.0.0-rc.2
+  version: 1.0.0-rc.3
   built_at: 2026-07-28
 spec:
   display_name: PARALLAX Ω

@@ -3,13 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
 
 def utc_now_dt() -> datetime:
-    return datetime.now(timezone.utc).replace(microsecond=0)
+    return datetime.now(UTC).replace(microsecond=0)
 
 
 def utc_now() -> str:
@@ -20,7 +20,7 @@ def parse_utc(value: str) -> datetime:
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if parsed.tzinfo is None:
         raise ValueError("timestamp must include timezone")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def canonical_hash(payload: object) -> str:
@@ -92,7 +92,7 @@ class EvidenceRef:
                 raise ValueError("content_hash must be a SHA-256 hex digest")
 
     def is_current(self, at: datetime | None = None) -> bool:
-        moment = (at or utc_now_dt()).astimezone(timezone.utc)
+        moment = (at or utc_now_dt()).astimezone(UTC)
         observed = parse_utc(self.observed_at)
         if observed > moment:
             return False
@@ -125,6 +125,9 @@ class AuthorizationContext:
     policy_allows: bool
     trusted_source: bool = False
     policy_source: str = "untrusted"
+    policy_hash: str = ""
+    risk_floor: RiskLevel | None = None
+    operation_irreversible: bool | None = None
     explicit_user_approval: bool = False
     approval_scope: str | None = None
     approval_fingerprint: str | None = None
@@ -141,7 +144,7 @@ class AuthorizationContext:
     def approval_is_current(self, at: datetime | None = None) -> bool:
         if self.approval_expires_at is None:
             return False
-        return parse_utc(self.approval_expires_at) >= (at or utc_now_dt()).astimezone(timezone.utc)
+        return parse_utc(self.approval_expires_at) >= (at or utc_now_dt()).astimezone(UTC)
 
 
 @dataclass(frozen=True)
@@ -158,16 +161,27 @@ class ActionRequest:
         if not all(value.strip() for value in (self.action_id, self.tool, self.operation, self.scope)):
             raise ValueError("action_id, tool, operation, and scope are required")
 
-    def fingerprint(self) -> str:
+    def fingerprint(
+        self,
+        *,
+        effective_risk: RiskLevel | None = None,
+        effective_irreversible: bool | None = None,
+    ) -> str:
+        risk = effective_risk or self.risk
+        irreversible = (
+            self.irreversible
+            if effective_irreversible is None
+            else effective_irreversible
+        )
         return canonical_hash(
             {
                 "action_id": self.action_id,
                 "tool": self.tool,
                 "operation": self.operation,
                 "scope": self.scope,
-                "risk": self.risk.value,
+                "risk": risk.value,
                 "evidence_claim_ids": sorted(set(self.evidence_claim_ids)),
-                "irreversible": self.irreversible,
+                "irreversible": irreversible,
             }
         )
 
@@ -178,6 +192,8 @@ class ActionDecision:
     reasons: tuple[str, ...]
     missing: tuple[str, ...] = ()
     action_fingerprint: str | None = None
+    effective_risk: RiskLevel | None = None
+    effective_irreversible: bool | None = None
 
 
 @dataclass
@@ -231,7 +247,7 @@ class MemoryConsent:
             raise ValueError("consent expires before it is issued")
 
     def is_current(self, at: datetime | None = None) -> bool:
-        moment = (at or utc_now_dt()).astimezone(timezone.utc)
+        moment = (at or utc_now_dt()).astimezone(UTC)
         return parse_utc(self.issued_at) <= moment <= parse_utc(self.expires_at)
 
 

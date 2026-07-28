@@ -1,7 +1,7 @@
 # Package Receipt
 
 Package: `parallax-omega-agent-stack`  
-Version: `1.0.0-rc.2`  
+Version: `1.0.0-rc.3`  
 Date: 2026-07-28  
 Status: `locally-verified / packaged after ledger build / not-deployed / not-invoked / not-verified-live`
 

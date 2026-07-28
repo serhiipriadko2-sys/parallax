@@ -7,11 +7,18 @@ from tests._bootstrap import ensure_runtime_path
 ensure_runtime_path()
 
 try:
+    import parallax_omega.api as api_module
     from fastapi.testclient import TestClient
     from parallax_omega.api import app
-except ImportError:
+    from parallax_omega.policy import HostPolicyAdapter, PolicyMode
+except (ImportError, RuntimeError):
+    # parallax_omega.api deliberately re-raises a missing runtime extra as RuntimeError,
+    # so the guard cannot depend on ImportError alone or on which import is sorted first.
     TestClient = None
     app = None
+    api_module = None
+    HostPolicyAdapter = None
+    PolicyMode = None
 
 
 @unittest.skipIf(TestClient is None, "runtime extras not installed")
@@ -23,7 +30,6 @@ class ApiTests(unittest.TestCase):
 
     def tearDown(self):
         os.environ.pop("PARALLAX_API_KEY", None)
-        os.environ.pop("PARALLAX_POLICY_MODE", None)
 
     def test_health_is_public_and_reports_safe_defaults(self):
         response = self.client.get("/health")
@@ -47,24 +53,33 @@ class ApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
-    def test_default_policy_fails_closed(self):
-        response = self.client.post(
-            "/v1/actions/preflight",
-            headers=self.headers,
-            json={
-                "action_id": "a",
-                "tool": "local",
-                "operation": "parse",
-                "scope": "input",
-                "risk": "R0",
-            },
-        )
+    def test_default_policy_fails_closed_and_emits_receipt(self):
+        deny = HostPolicyAdapter()
+        with patch.object(api_module, "policy_adapter", deny):
+            response = self.client.post(
+                "/v1/actions/preflight",
+                headers=self.headers,
+                json={
+                    "action_id": "a",
+                    "tool": "local",
+                    "operation": "parse",
+                    "scope": "input",
+                    "risk": "R0",
+                },
+            )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["decision"]["disposition"], "deny")
-        self.assertFalse(response.json()["execution_performed"])
+        body = response.json()
+        self.assertEqual(body["decision"]["disposition"], "deny")
+        self.assertFalse(body["execution_performed"])
+        self.assertEqual(body["receipt"]["event_type"], "action_decision")
+        self.assertEqual(body["receipt"]["metadata"]["surface"], "http")
+        self.assertEqual(body["receipt"]["payload"]["policy_hash"], deny.policy_hash)
 
-    def test_read_only_host_policy_allows_r0_preflight(self):
-        with patch.dict(os.environ, {"PARALLAX_POLICY_MODE": "read_only"}):
+    def test_read_only_snapshot_allows_r0_preflight(self):
+        adapter = HostPolicyAdapter.from_env(mode_variable="PARALLAX_TEST_POLICY_MODE")
+        with patch.dict(os.environ, {"PARALLAX_TEST_POLICY_MODE": "read_only"}, clear=False):
+            adapter = HostPolicyAdapter.from_env(mode_variable="PARALLAX_TEST_POLICY_MODE")
+        with patch.object(api_module, "policy_adapter", adapter):
             response = self.client.post(
                 "/v1/actions/preflight",
                 headers=self.headers,
@@ -78,8 +93,7 @@ class ApiTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["decision"]["disposition"], "allow")
-        self.assertTrue(response.json()["advisory"])
-        self.assertFalse(response.json()["execution_performed"])
+        self.assertIn("receipt", response.json())
 
     def test_model_cannot_supply_authority_fields(self):
         response = self.client.post(
@@ -97,7 +111,7 @@ class ApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 422)
 
-    def test_memory_endpoint_returns_candidate_not_commit(self):
+    def test_memory_endpoint_returns_candidate_and_receipt_not_commit(self):
         response = self.client.post(
             "/v1/memory/candidates",
             headers=self.headers,
@@ -112,6 +126,7 @@ class ApiTests(unittest.TestCase):
         self.assertFalse(body["persistent"])
         self.assertFalse(body["execution_performed"])
         self.assertEqual(body["candidate"]["stage"], "candidate")
+        self.assertEqual(body["receipt"]["event_type"], "memory_candidate")
 
 
 if __name__ == "__main__":

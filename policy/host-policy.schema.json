@@ -1,21 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:parallax-omega:host-policy:1.0",
+  "$id": "urn:parallax-omega:host-policy:1.1",
   "title": "PARALLAX Omega Host Policy",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schema_version",
-    "default",
-    "rules"
-  ],
+  "required": ["schema_version", "default", "rules"],
   "properties": {
-    "schema_version": {
-      "const": "1.0"
-    },
-    "default": {
-      "const": "deny"
-    },
+    "schema_version": {"const": "1.1"},
+    "default": {"const": "deny"},
     "rules": {
       "type": "array",
       "items": {
@@ -24,35 +16,22 @@
         "required": [
           "tool",
           "operation",
+          "risk_floor",
           "max_risk",
+          "irreversible",
           "scope_prefixes"
         ],
         "properties": {
-          "tool": {
-            "type": "string",
-            "minLength": 1
-          },
-          "operation": {
-            "type": "string",
-            "minLength": 1
-          },
-          "max_risk": {
-            "enum": [
-              "R0",
-              "R1",
-              "R2",
-              "R3",
-              "R4"
-            ]
-          },
+          "tool": {"type": "string", "minLength": 1},
+          "operation": {"type": "string", "minLength": 1},
+          "risk_floor": {"enum": ["R0", "R1", "R2", "R3", "R4"]},
+          "max_risk": {"enum": ["R0", "R1", "R2", "R3", "R4"]},
+          "irreversible": {"type": "boolean"},
           "scope_prefixes": {
             "type": "array",
             "minItems": 1,
             "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
+            "items": {"type": "string", "minLength": 1}
           }
         }
       }

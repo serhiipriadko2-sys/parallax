@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: PARALLAX Ω Advisory Actions API
-  version: 1.0.0-rc.2
+  version: 1.0.0-rc.3
   description: >-
     Advisory action preflight and non-persistent memory-candidate generation.
     This API exposes no endpoint that writes to an external system or durable memory.
@@ -103,7 +103,7 @@ components:
         irreversible: {type: boolean, default: false}
     ActionPreflightResponse:
       type: object
-      required: [advisory, execution_performed, policy_mode, action_fingerprint, decision]
+      required: [advisory, execution_performed, policy_mode, action_fingerprint, decision, receipt]
       additionalProperties: false
       properties:
         advisory: {type: boolean, const: true}
@@ -111,6 +111,7 @@ components:
         policy_mode: {type: string, enum: [deny_all, read_only, allowlist]}
         action_fingerprint: {type: string, pattern: '^[0-9a-f]{64}$'}
         decision: {type: object}
+        receipt: {type: object}
     MemoryProposal:
       type: object
       required: [content, purpose, deletion_path]
@@ -124,10 +125,11 @@ components:
         deletion_path: {type: string, minLength: 1, maxLength: 1024}
     MemoryCandidateResponse:
       type: object
-      required: [persistent, execution_performed, candidate, candidate_fingerprint]
+      required: [persistent, execution_performed, candidate, candidate_fingerprint, receipt]
       additionalProperties: false
       properties:
         persistent: {type: boolean, const: false}
         execution_performed: {type: boolean, const: false}
         candidate: {type: object}
         candidate_fingerprint: {type: string, pattern: '^[0-9a-f]{64}$'}
+        receipt: {type: object}

@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "captured_at": "2026-07-28",
+  "project": "AgiIskra",
+  "policy": "Authenticated EXECUTE is permitted only for these reviewed definitions; any signature or definition hash drift requires review.",
+  "functions": [
+    {"name":"consume_ai_quota","arguments":"p_ip_digest text","definition_md5":"c1779e61701d7e5de69f407177e9a19e"},
+    {"name":"graph_create_edge","arguments":"p_id text, p_source text, p_target text, p_type text, p_weight real, p_metadata jsonb","definition_md5":"d1d5e108b72989aea88fc09ddae74fc2"},
+    {"name":"graph_create_node","arguments":"p_id text, p_layer text, p_type text, p_content text, p_timestamp timestamp with time zone, p_metrics_snapshot jsonb, p_related_ids text[], p_resonance_score real, p_metadata jsonb","definition_md5":"682eed3652ced14a9b34bf7d679fffee"},
+    {"name":"graph_delete_node","arguments":"p_node_id text","definition_md5":"7f52f9b321354642327e562751826feb"},
+    {"name":"graph_find_resonant_nodes","arguments":"p_min_resonance real, p_limit_count integer","definition_md5":"80b9fbe1b51f567b1d36b21bd66705c4"},
+    {"name":"graph_get_connection_candidates","arguments":"p_node_id text, p_limit_count integer","definition_md5":"22f88119612865cae357eb035211db3b"},
+    {"name":"graph_get_node_with_edges","arguments":"node_id text","definition_md5":"134a215e058d5b9246f14e2ed386de10"},
+    {"name":"graph_get_stats","arguments":"","definition_md5":"01f480bec7bbb2fecb6001770722de8e"},
+    {"name":"graph_get_user_nodes","arguments":"p_layer text, p_type text, p_node_ids text[], p_limit_count integer","definition_md5":"9499a093a5e7c3be1b35b8eaab4a810f"},
+    {"name":"graph_search_nodes","arguments":"p_query text, p_limit_count integer","definition_md5":"615ef8d62ae4eaf5c48312abb338c90a"},
+    {"name":"graph_traverse_bfs_nodes","arguments":"p_start_id text, p_max_depth integer, p_min_weight real","definition_md5":"1b01070d7f962777151de802cac0d044"},
+    {"name":"graph_update_node_resonance","arguments":"p_node_id text, p_metrics_snapshot jsonb, p_resonance_score real","definition_md5":"88df9ff10a5810e6d55dec4269c61271"},
+    {"name":"resolve_beta_access","arguments":"","definition_md5":"5351a7fb1a3aa5de22a8e0782e4792f5"}
+  ]
+}

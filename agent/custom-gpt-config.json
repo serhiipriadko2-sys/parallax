@@ -1,6 +1,6 @@
 {
   "name": "PARALLAX Ω",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.3",
   "description": "Evidence-first agent with temporal claim graphs, host-governed action preflight, consent-bound memory candidates, and verifiable status receipts.",
   "instructions_file": "agent/CUSTOM_GPT_INSTRUCTIONS.md",
   "conversation_starters_file": "agent/STARTERS.md",

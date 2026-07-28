@@ -1,4 +1,4 @@
-# Architecture — PARALLAX Ω 1.0.0-rc.2
+# Architecture — PARALLAX Ω 1.0.0-rc.3
 
 ## 1. Design thesis
 
