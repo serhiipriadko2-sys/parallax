@@ -1,11 +1,11 @@
 """Optional OpenAI Agents SDK composition.
 
-The model proposes. A host-owned policy adapter governs. No external write tool is
-registered in this release candidate.
+The model proposes. A host-owned immutable policy snapshot governs. No external
+write tool is registered in this release candidate.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 
 try:
@@ -13,21 +13,18 @@ try:
 except ImportError as exc:  # pragma: no cover
     raise RuntimeError("Install the openai extra: pip install -e '.[openai]'") from exc
 
-from parallax_omega.authority import ActionGovernor
-from parallax_omega.claim_graph import ClaimGraph
+from parallax_omega.kernel import ParallaxKernel
 from parallax_omega.models import ActionRequest, RiskLevel
 from parallax_omega.policy import HostPolicyAdapter
 
 ROOT = Path(__file__).resolve().parents[1]
-_graph = ClaimGraph()
-_governor = ActionGovernor()
 
 
 @dataclass
 class ParallaxRunContext:
     """Host-supplied context. Model tool arguments cannot construct this object."""
 
-    policy: HostPolicyAdapter = field(default_factory=HostPolicyAdapter)
+    policy: HostPolicyAdapter = field(default_factory=HostPolicyAdapter.from_env)
 
 
 @function_tool
@@ -50,14 +47,21 @@ def action_preflight(
         irreversible=irreversible,
     )
     adapter = ctx.context.policy
-    decision = _governor.decide(request, adapter.context_for(request), _graph)
+    result = ParallaxKernel().evaluate_action(
+        request,
+        adapter.context_for(request),
+        surface="agents_sdk",
+    )
+    decision = result["decision"]
     return {
         "advisory": True,
         "execution_performed": False,
         "policy_mode": adapter.mode.value,
         "policy_source": adapter.source,
-        "action_fingerprint": request.fingerprint(),
-        "decision": asdict(decision),
+        "policy_hash": adapter.policy_hash,
+        "action_fingerprint": decision["action_fingerprint"],
+        "decision": decision,
+        "receipt": result["receipt"],
     }
 
 

@@ -8,15 +8,15 @@
     "mcp": "adapters/mcp_server.py",
     "workspace_agent": "agent/WORKSPACE_AGENT_INSTRUCTIONS.md"
   },
-  "eval_cases": 72,
-  "file_count_ledger": 128,
+  "eval_cases": 74,
+  "file_count_ledger": 154,
   "knowledge_files": 10,
-  "name": "parallax-omega-agent-stack",
+  "name": "parallax",
   "schema_version": "2.0",
   "security_default": "deny-all; writes-and-memory-not-exposed",
   "skill_archives": 7,
   "skills": 7,
   "status": "locally-verified-packaged-not-deployed-not-verified-live",
-  "total_bytes_ledger": 266482,
-  "version": "1.0.0-rc.2"
+  "total_bytes_ledger": 1036649,
+  "version": "1.0.0-rc.3"
 }

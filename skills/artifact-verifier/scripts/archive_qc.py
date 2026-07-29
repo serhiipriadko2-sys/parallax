@@ -19,6 +19,62 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _parse_ledger(text: str, errors: list[str]) -> dict[str, str]:
+    entries: dict[str, str] = {}
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        try:
+            digest, rel = line.split("  ", 1)
+        except ValueError:
+            errors.append(f"ledger_format:{line_number}")
+            continue
+        if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest.lower()):
+            errors.append(f"ledger_digest:{line_number}")
+            continue
+        if not rel or rel in entries:
+            errors.append(f"ledger_duplicate:{rel or line_number}")
+            continue
+        entries[rel] = digest.lower()
+    return entries
+
+
+def _verify_embedded_ledger(archive: zipfile.ZipFile, names: set[str], errors: list[str]) -> None:
+    ledger_members = sorted(name for name in names if name.endswith("SHA256SUMS"))
+    if not ledger_members:
+        return
+    if len(ledger_members) != 1:
+        errors.append("embedded_ledger_count")
+        return
+    ledger_member = ledger_members[0]
+    prefix = ledger_member[: -len("SHA256SUMS")]
+    manifest_member = f"{prefix}MANIFEST.json"
+    if manifest_member not in names:
+        errors.append("embedded_manifest_missing")
+        return
+    for name in sorted(name for name in names if not name.startswith(prefix)):
+        errors.append(f"outside_release_root:{name}")
+    entries = _parse_ledger(archive.read(ledger_member).decode("utf-8"), errors)
+    payload = {
+        name[len(prefix):]
+        for name in names
+        if name.startswith(prefix) and name not in {ledger_member, manifest_member}
+    }
+    ledger_set = set(entries)
+    for rel in sorted(payload - ledger_set):
+        errors.append(f"unlisted_file:{rel}")
+    for rel in sorted(ledger_set - payload):
+        errors.append(f"missing_file:{rel}")
+    for rel, digest in entries.items():
+        member = f"{prefix}{rel}"
+        if member in names and hashlib.sha256(archive.read(member)).hexdigest() != digest:
+            errors.append(f"hash:{rel}")
+    try:
+        manifest = json.loads(archive.read(manifest_member).decode("utf-8"))
+        if manifest.get("file_count_ledger") != len(entries):
+            errors.append("manifest_ledger_count")
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        errors.append("manifest_parse")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("archive", type=Path)
@@ -62,6 +118,7 @@ def main() -> int:
                 ratio = info.file_size / info.compress_size
             if ratio > args.max_ratio:
                 errors.append(f"compression_ratio:{name}:{ratio:.1f}")
+        _verify_embedded_ledger(archive, names, errors)
     if total_uncompressed > args.max_uncompressed_bytes:
         errors.append("uncompressed_size_limit")
 

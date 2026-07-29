@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from copy import deepcopy
+from typing import Any
 from uuid import uuid4
 
 from .models import Receipt, canonical_hash, utc_now
@@ -28,8 +29,8 @@ class ReceiptChain:
         self,
         event_type: str,
         status: str,
-        payload: dict,
-        metadata: dict | None = None,
+        payload: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
         *,
         authoritative: bool = False,
     ) -> Receipt:

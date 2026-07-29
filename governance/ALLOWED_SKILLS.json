@@ -1,0 +1,209 @@
+{
+  "attestation": {
+    "required": true,
+    "subject": "governance/ALLOWED_SKILLS.json",
+    "type": "github-build-provenance"
+  },
+  "default": "deny",
+  "schema_version": "1.0",
+  "skills": [
+    {
+      "files": [
+        {
+          "bytes": 1318,
+          "path": "SKILL.md",
+          "sha256": "3345643e6e5b2d56607e7994e9b6fb4e923b994a6f8fd2f71611220f83c814b3"
+        },
+        {
+          "bytes": 295,
+          "path": "agents/openai.yaml",
+          "sha256": "1a6a534d13c82fe6492a83272560c2daa1dc2c34b89d72d5ab6707a945660cb9"
+        },
+        {
+          "bytes": 432,
+          "path": "assets/icon.svg",
+          "sha256": "b308451fdc474dfb47c44f871e4b90c59c70b32cd57af5d0b74bd1ae17c0bbe7"
+        },
+        {
+          "bytes": 915,
+          "path": "references/contract.md",
+          "sha256": "40b4e65e30a5a49c7a81ee5420575a9e6b1a4f43c4a639c1d620a967d8b79ab7"
+        },
+        {
+          "bytes": 2152,
+          "path": "scripts/risk_gate.py",
+          "sha256": "22e7e547a7d8dffa6b973ecc9251582bb5f6afd870891c35fa430b7c16733e17"
+        }
+      ],
+      "name": "action-governor",
+      "tree_sha256": "17f4a7209d3e8bd92253189b19a6ac8915453f22f6065817cc6697bfb542eebd"
+    },
+    {
+      "files": [
+        {
+          "bytes": 1357,
+          "path": "SKILL.md",
+          "sha256": "16d4e7fcf389da895830d4044946a98320016464ba36bcbbb716b6e8afbad957"
+        },
+        {
+          "bytes": 299,
+          "path": "agents/openai.yaml",
+          "sha256": "f8cc8c5961f6918f5b530971dce4e0006a6dc7258e040d15ff5c086268b5d4a8"
+        },
+        {
+          "bytes": 432,
+          "path": "assets/icon.svg",
+          "sha256": "b308451fdc474dfb47c44f871e4b90c59c70b32cd57af5d0b74bd1ae17c0bbe7"
+        },
+        {
+          "bytes": 647,
+          "path": "references/contract.md",
+          "sha256": "9fc5afa49908d6f53f0bceb65375e7025f7d7ad61dc0c31f857d386d678f50a2"
+        },
+        {
+          "bytes": 5312,
+          "path": "scripts/archive_qc.py",
+          "sha256": "d3effdb63ea6bf7cd0fc6acaf86e46007a9c58521299725f27b2b5f501a17a9c"
+        }
+      ],
+      "name": "artifact-verifier",
+      "tree_sha256": "caf17b99131153418fef5a6b9d4b1574c84fe1b051aa6cef659a9da652abf3fb"
+    },
+    {
+      "files": [
+        {
+          "bytes": 1041,
+          "path": "SKILL.md",
+          "sha256": "f45545966677443c48216536edf1f1ad25240b86eb9cf47243d880229d0ef8e4"
+        },
+        {
+          "bytes": 304,
+          "path": "agents/openai.yaml",
+          "sha256": "390f3ae5591512a4b3cacaffb9ef7fda6a84ddc0cacff711cef1bba6ca8d399a"
+        },
+        {
+          "bytes": 432,
+          "path": "assets/icon.svg",
+          "sha256": "b308451fdc474dfb47c44f871e4b90c59c70b32cd57af5d0b74bd1ae17c0bbe7"
+        },
+        {
+          "bytes": 566,
+          "path": "references/lenses.md",
+          "sha256": "0079b10dd5ffeb74770327734772c72b3cfa578f3972894f0d4fd30e12d0e8b0"
+        }
+      ],
+      "name": "blind-spot-hunter",
+      "tree_sha256": "388049967d0ee0021d4418df4413d8f7e9b08f156a06ba0524f885fbc671d04f"
+    },
+    {
+      "files": [
+        {
+          "bytes": 1023,
+          "path": "SKILL.md",
+          "sha256": "993cd8a9b9528b86f41f462311b70f7aa769f564522b138bf0384c2c499fe9d4"
+        },
+        {
+          "bytes": 303,
+          "path": "agents/openai.yaml",
+          "sha256": "841fa65ea4a61d9caebee3694b8b9ce7bda42320fff7e42c90a2fb4b213054d4"
+        },
+        {
+          "bytes": 432,
+          "path": "assets/icon.svg",
+          "sha256": "b308451fdc474dfb47c44f871e4b90c59c70b32cd57af5d0b74bd1ae17c0bbe7"
+        },
+        {
+          "bytes": 321,
+          "path": "references/branch-template.md",
+          "sha256": "16fa5c89bbe99c045d257ed485c98f981e85538c0a98892a7959dd3c41651804"
+        }
+      ],
+      "name": "counterfactual-fork",
+      "tree_sha256": "825dcc0d072201de38e4a020509757e5062280d170d65e6c0fba65e72f7cbdac"
+    },
+    {
+      "files": [
+        {
+          "bytes": 1226,
+          "path": "SKILL.md",
+          "sha256": "c37b6c99f5d4bf67e1a188c9567472401f05bc7286067837696fc2b611ae4239"
+        },
+        {
+          "bytes": 300,
+          "path": "agents/openai.yaml",
+          "sha256": "8e47fc9c3d27151b3433fc0e8dc967cccf4a0dd3c0c323906f068434b2276fb5"
+        },
+        {
+          "bytes": 432,
+          "path": "assets/icon.svg",
+          "sha256": "b308451fdc474dfb47c44f871e4b90c59c70b32cd57af5d0b74bd1ae17c0bbe7"
+        },
+        {
+          "bytes": 684,
+          "path": "references/schema.md",
+          "sha256": "17c5ac77c2a278031c0218d506e9d12158c7fd83900284ad401a4ab0f336b956"
+        },
+        {
+          "bytes": 3743,
+          "path": "scripts/claim_dag.py",
+          "sha256": "ff57ede789613c71b4c7ce0ed194db148f6c0b5aac6adb0924dfc9a459046eaa"
+        }
+      ],
+      "name": "evidence-compiler",
+      "tree_sha256": "9384f39cae7b26e2bdc9da275645194c55255fbe215b10348024138f40c36de3"
+    },
+    {
+      "files": [
+        {
+          "bytes": 1251,
+          "path": "SKILL.md",
+          "sha256": "d9064acbc571fde9b1cfc18ff46fda75fac38302863dc7cdbb413cae31fab524"
+        },
+        {
+          "bytes": 298,
+          "path": "agents/openai.yaml",
+          "sha256": "a9f2e829ab324c2e88c6d82f7ebcfa4cbfd19a5ba84ce80bd127ce519adbafc8"
+        },
+        {
+          "bytes": 432,
+          "path": "assets/icon.svg",
+          "sha256": "b308451fdc474dfb47c44f871e4b90c59c70b32cd57af5d0b74bd1ae17c0bbe7"
+        },
+        {
+          "bytes": 589,
+          "path": "references/consent-contract.md",
+          "sha256": "acf1e576ae7f2790b2725dd98cec3a7441700079fbbf41256fb7f01fe547fbee"
+        }
+      ],
+      "name": "memory-steward",
+      "tree_sha256": "5b684ca46aa3abbb3355ca19920c93ce78d5a7a4734610b10ad83de013a7c95d"
+    },
+    {
+      "files": [
+        {
+          "bytes": 1111,
+          "path": "SKILL.md",
+          "sha256": "de9c6c8592dd30b9b1dd06e95524dbaf5324d7e732ffa19b07f9ca1c62f2cfe6"
+        },
+        {
+          "bytes": 300,
+          "path": "agents/openai.yaml",
+          "sha256": "db52af65f25542f71fdac22c7a121fdd0e1b3f3486bf7d1d4af4cccbcf2f0af7"
+        },
+        {
+          "bytes": 432,
+          "path": "assets/icon.svg",
+          "sha256": "b308451fdc474dfb47c44f871e4b90c59c70b32cd57af5d0b74bd1ae17c0bbe7"
+        },
+        {
+          "bytes": 366,
+          "path": "references/output-contract.md",
+          "sha256": "6ba3971d1ec239697a93d95abb35117576a47e471685653f34713a94a9395510"
+        }
+      ],
+      "name": "parallax-synthesizer",
+      "tree_sha256": "e893acb86a9aa3b4e65b2cfcec9bad46a36bfcb00cffeae0e671c03923226223"
+    }
+  ],
+  "version": "1.0.0-rc.3"
+}

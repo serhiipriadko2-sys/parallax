@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "parallax-omega-agent"
-version = "1.0.0rc2"
+version = "1.0.0rc3"
 description = "Proof-carrying control plane for ChatGPT and OpenAI agents"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,10 +36,11 @@ openai = [
 ]
 dev = [
   "build>=1.2,<2",
-  "pytest>=8,<9",
+  "pytest>=9.0.3,<10",
   "ruff>=0.9,<1",
   "mypy>=1.14,<2",
   "pyyaml>=6,<7",
+  "pip-audit>=2.8,<3",
 ]
 
 
@@ -58,7 +59,18 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
-ignore = ["E501"]
+# UP042 would migrate the `(str, Enum)` classes in models.py and policy.py to `StrEnum`.
+# That changes `str(RiskLevel.R0)` from "RiskLevel.R0" to "R0", and those members are
+# serialized into action fingerprints, receipt payloads, and the receipt chain hash. The
+# migration is therefore a deliberate, separately tested change and not a lint cleanup.
+ignore = ["E501", "UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+# These modules must extend sys.path before importing the package under test or the
+# sibling script module, so imports cannot all precede executable statements.
+"tests/*" = ["E402"]
+"scripts/build_release.py" = ["E402"]
+"scripts/validate_package.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -69,3 +81,7 @@ warn_unreachable = true
 addopts = "-ra"
 testpaths = ["tests"]
 pythonpath = ["runtime", "."]
+
+[tool.uv]
+required-version = "==0.10.0"
+resolution = "highest"

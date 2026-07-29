@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from tests._bootstrap import ensure_runtime_path
 
@@ -67,7 +67,7 @@ class ClaimGraphTests(unittest.TestCase):
         self.assertEqual(graph.get("b").status, ClaimStatus.INVALID)
 
     def test_expired_evidence_cannot_verify(self):
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        now = datetime.now(UTC).replace(microsecond=0)
         expired = (now - timedelta(seconds=1)).isoformat().replace("+00:00", "Z")
         observed = (now - timedelta(days=1)).isoformat().replace("+00:00", "Z")
         graph = ClaimGraph()
@@ -83,7 +83,7 @@ class ClaimGraphTests(unittest.TestCase):
             graph.verify("a", 0.8, at=now)
 
     def test_time_revalidation_invalidates_descendants(self):
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        now = datetime.now(UTC).replace(microsecond=0)
         expires = (now + timedelta(seconds=1)).isoformat().replace("+00:00", "Z")
         later = now + timedelta(seconds=2)
         graph = ClaimGraph()

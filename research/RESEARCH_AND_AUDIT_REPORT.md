@@ -1,7 +1,7 @@
 # Research and architecture audit — second pass
 
 Date: 2026-07-28  
-Candidate: PARALLAX Ω `1.0.0-rc.2`
+Candidate: PARALLAX Ω `1.0.0-rc.3`
 
 ## Executive verdict
 

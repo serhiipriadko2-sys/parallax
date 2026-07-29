@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0-rc.3 — 2026-07-28
+
+### Security remediation
+
+- Derive effective risk and irreversibility from host-owned policy floors; callers can only raise strictness.
+- Replace raw scope prefix checks with normalized segment-aware matching.
+- Require SHA-256 pinned immutable policy snapshots and HMAC-authorized explicit reloads.
+- Route HTTP, MCP, and Agents SDK action decisions through `ParallaxKernel` and emit policy-bound receipts.
+- Add durable consent lifecycle states and an idempotent SQLite memory backend for staging.
+- Make the release ledger bidirectional so unlisted files fail package and archive validation.
+- Add explicit Supabase client-deny policies, durable consent registry migrations, SECURITY DEFINER allowlist, and drift SQL.
+
 ## 1.0.0-rc.2 — 2026-07-28
 
 ### Security boundary

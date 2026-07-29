@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hmac
 import os
-from dataclasses import asdict
 from typing import Any
 from uuid import uuid4
 
@@ -12,16 +11,14 @@ try:
 except ImportError as exc:  # pragma: no cover
     raise RuntimeError("Install the runtime extra: pip install -e '.[runtime]'") from exc
 
-from .authority import ActionGovernor
-from .claim_graph import ClaimGraph
-from .memory import MemoryProtocolError, MemorySteward
+from .kernel import ParallaxKernel
+from .memory import MemoryProtocolError
 from .models import ActionRequest, RiskLevel
 from .policy import HostPolicyAdapter
 
-app = FastAPI(title="PARALLAX Ω Advisory Actions API", version="1.0.0-rc.2")
-graph = ClaimGraph()
-governor = ActionGovernor()
-steward = MemorySteward()
+app = FastAPI(title="PARALLAX Ω Advisory Actions API", version="1.0.0-rc.3")
+# Immutable process-start snapshot. File-backed policies require PARALLAX_POLICY_SHA256.
+policy_adapter = HostPolicyAdapter.from_env()
 
 
 def authenticate(authorization: str | None = Header(default=None)) -> None:
@@ -29,7 +26,14 @@ def authenticate(authorization: str | None = Header(default=None)) -> None:
     if not expected:
         raise HTTPException(status_code=503, detail="api_not_configured")
     supplied = authorization or ""
-    if not hmac.compare_digest(supplied, f"Bearer {expected}"):
+    try:
+        valid = hmac.compare_digest(
+            supplied.encode("utf-8", "surrogatepass"),
+            f"Bearer {expected}".encode("utf-8", "surrogatepass"),
+        )
+    except (UnicodeError, ValueError, TypeError):
+        valid = False
+    if not valid:
         raise HTTPException(status_code=401, detail="unauthorized")
 
 
@@ -65,14 +69,13 @@ async def attach_request_id(request, call_next):  # type: ignore[no-untyped-def]
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    adapter = HostPolicyAdapter.from_env()
     return {
         "ok": True,
         "service": "parallax-omega",
-        "version": "1.0.0-rc.2",
+        "version": "1.0.0-rc.3",
         "memory": "disabled",
         "external_writes": "not_exposed",
-        "policy_mode": adapter.mode.value,
+        "policy_mode": policy_adapter.mode.value,
     }
 
 
@@ -87,26 +90,33 @@ def preflight_action(body: ActionProposal) -> dict[str, Any]:
         evidence_claim_ids=tuple(body.evidence_claim_ids),
         irreversible=body.irreversible,
     )
-    adapter = HostPolicyAdapter.from_env()
-    decision = governor.decide(request, adapter.context_for(request), graph)
+    result = ParallaxKernel().evaluate_action(
+        request,
+        policy_adapter.context_for(request),
+        surface="http",
+    )
+    decision = result["decision"]
     return {
         "advisory": True,
         "execution_performed": False,
-        "policy_mode": adapter.mode.value,
-        "action_fingerprint": request.fingerprint(),
-        "decision": asdict(decision),
+        "policy_mode": policy_adapter.mode.value,
+        "action_fingerprint": decision["action_fingerprint"],
+        "decision": decision,
+        "receipt": result["receipt"],
     }
 
 
 @app.post("/v1/memory/candidates", dependencies=[Depends(authenticate)])
 def propose_memory(body: MemoryProposal) -> dict[str, Any]:
     try:
-        candidate = steward.propose(**body.model_dump())
+        result = ParallaxKernel().propose_memory(surface="http", **body.model_dump())
     except MemoryProtocolError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    candidate = result["candidate"]
     return {
         "persistent": False,
         "execution_performed": False,
-        "candidate": asdict(candidate),
-        "candidate_fingerprint": candidate.fingerprint(),
+        "candidate": candidate,
+        "candidate_fingerprint": result["receipt"]["payload"]["candidate_fingerprint"],
+        "receipt": result["receipt"],
     }

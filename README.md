@@ -1,6 +1,6 @@
 # PARALLAX Ω — Proof-Carrying Agent Stack
 
-Version: `1.0.0-rc.2`  
+Version: `1.0.0-rc.3`  
 Built: `2026-07-28`  
 Status: **locally tested release candidate; packaged after final ledger build; not deployed; not verified live**
 
@@ -79,3 +79,7 @@ No mutation endpoint is exposed. Never commit credentials. Configure them only i
 - `verified-live`: the exact deployed version was invoked and its intended effect observed.
 
 This package is **not verified live**. A live pass requires target upload, Preview or staging invocation, behavioral evals, connector/OAuth tests, and an effect receipt.
+## rc.3 security status
+
+The rc.3 branch closes the confirmed P0 paths A-01, A-02, A-06, A-08, A-09, and A-12 in the local package. File-backed policies are immutable SHA-256-pinned startup snapshots; explicit reloads require a host HMAC. HTTP, MCP, and Agents SDK preflight responses now include policy-bound receipts. Durable memory remains disabled by default; the supplied Supabase migration and drift SQL are activation gates, not proof of a live adapter.
+

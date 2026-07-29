@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from tests._bootstrap import ensure_runtime_path
 
@@ -24,7 +24,7 @@ def iso(moment: datetime) -> str:
 
 class AuthorityTests(unittest.TestCase):
     def setUp(self):
-        self.now = datetime.now(timezone.utc).replace(microsecond=0)
+        self.now = datetime.now(UTC).replace(microsecond=0)
         self.graph = ClaimGraph()
         first = Claim("e1", "evidence", ClaimType.FACT, evidence=[EvidenceRef("src1", "repo")])
         self.graph.add(first)
@@ -35,13 +35,20 @@ class AuthorityTests(unittest.TestCase):
         self.gov = ActionGovernor()
 
     def trusted(self, request: ActionRequest, **overrides) -> AuthorizationContext:
+        risk_floor = overrides.pop("risk_floor", request.risk)
+        operation_irreversible = overrides.pop("operation_irreversible", request.irreversible)
         values = dict(
             policy_allows=True,
             trusted_source=True,
             policy_source="test",
+            risk_floor=risk_floor,
+            operation_irreversible=operation_irreversible,
             explicit_user_approval=True,
             approval_scope=request.scope,
-            approval_fingerprint=request.fingerprint(),
+            approval_fingerprint=request.fingerprint(
+                effective_risk=max((request.risk, risk_floor), key=lambda item: int(item.value[1:])),
+                effective_irreversible=request.irreversible or operation_irreversible,
+            ),
             approval_expires_at=iso(self.now + timedelta(minutes=5)),
             current_state_observed=True,
             state_observation_ref="state:1",
@@ -61,6 +68,28 @@ class AuthorityTests(unittest.TestCase):
         self.assertEqual(decision.disposition, ActionDisposition.DENY)
         self.assertIn("untrusted_authorization_context", decision.reasons)
 
+
+    def test_missing_host_classification_is_denied(self):
+        req = ActionRequest("a", "tool", "read", "x", RiskLevel.R0)
+        ctx = AuthorizationContext(True, trusted_source=True, policy_source="test")
+        decision = self.gov.decide(req, ctx, self.graph, at=self.now)
+        self.assertEqual(decision.disposition, ActionDisposition.DENY)
+        self.assertIn("host_operation_classification_missing", decision.reasons)
+
+    def test_host_risk_floor_cannot_be_lowered_by_caller(self):
+        req = ActionRequest("a", "db", "drop", "prod/table", RiskLevel.R1, irreversible=False)
+        ctx = self.trusted(
+            req,
+            risk_floor=RiskLevel.R4,
+            operation_irreversible=True,
+            dual_control=False,
+        )
+        decision = self.gov.decide(req, ctx, self.graph, at=self.now)
+        self.assertEqual(decision.disposition, ActionDisposition.PROPOSAL_ONLY)
+        self.assertEqual(decision.effective_risk, RiskLevel.R4)
+        self.assertTrue(decision.effective_irreversible)
+        self.assertNotEqual(decision.action_fingerprint, req.fingerprint())
+
     def test_policy_denial_wins(self):
         req = ActionRequest("a", "tool", "read", "x", RiskLevel.R0)
         ctx = AuthorizationContext(False, trusted_source=True, policy_source="test")
@@ -69,7 +98,13 @@ class AuthorityTests(unittest.TestCase):
 
     def test_r0_allowed(self):
         req = ActionRequest("a", "local", "parse", "x", RiskLevel.R0)
-        ctx = AuthorizationContext(True, trusted_source=True, policy_source="test")
+        ctx = AuthorizationContext(
+            True,
+            trusted_source=True,
+            policy_source="test",
+            risk_floor=RiskLevel.R0,
+            operation_irreversible=False,
+        )
         self.assertEqual(
             self.gov.decide(req, ctx, self.graph, at=self.now).disposition,
             ActionDisposition.ALLOW,
