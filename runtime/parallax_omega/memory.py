@@ -9,6 +9,8 @@ from typing import Protocol
 from uuid import uuid4
 
 from .models import MemoryCandidate, MemoryConsent, MemoryStage
+from .sensitivity import PROHIBITED_SENSITIVITY as PROHIBITED_SENSITIVITY_LABELS
+from .sensitivity import detect_credentials, normalize_label
 
 
 class MemoryProtocolError(ValueError):
@@ -250,15 +252,8 @@ class SQLiteMemoryBackend:
 
 
 class MemorySteward:
-    PROHIBITED_SENSITIVITY = {
-        "secret",
-        "credential",
-        "medical",
-        "intimate",
-        "payment",
-        "biometric",
-        "private-third-party",
-    }
+    # Shared with the sensitivity module so the label set has exactly one definition.
+    PROHIBITED_SENSITIVITY = PROHIBITED_SENSITIVITY_LABELS
     ALLOWED_TARGETS = {"journal", "open_loop", "shadow"}
     MAX_CONTENT_CHARS = 4096
 
@@ -289,8 +284,20 @@ class MemorySteward:
             raise MemoryProtocolError("content, purpose, and deletion_path are required")
         if len(content) > self.MAX_CONTENT_CHARS:
             raise MemoryProtocolError("memory_content_too_large")
-        if sensitivity.lower() in self.PROHIBITED_SENSITIVITY:
+        normalized_sensitivity = normalize_label(sensitivity)
+        if not normalized_sensitivity:
+            raise MemoryProtocolError("sensitivity_label_required")
+        # A label that survives normalization but is still non-ASCII is a confusable
+        # spelling of a prohibited term (NFKC does not fold Cyrillic to Latin), so it is
+        # refused rather than compared and silently accepted.
+        if not normalized_sensitivity.isascii():
+            raise MemoryProtocolError("sensitivity_label_not_ascii")
+        if normalized_sensitivity in self.PROHIBITED_SENSITIVITY:
             raise MemoryProtocolError("sensitive_memory_prohibited")
+        # The label is caller-declared, so it cannot be the only gate: inspect the payload
+        # regardless of what was claimed.
+        if detect_credentials(content):
+            raise MemoryProtocolError("credential_content_prohibited")
         if target == "archive":
             raise MemoryProtocolError("direct_archive_write_forbidden")
         if target not in self.ALLOWED_TARGETS:

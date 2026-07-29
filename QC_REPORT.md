@@ -8,18 +8,20 @@ Lifecycle discipline for every statement below:
 
 ## Executed gates
 
-All results in this table were measured on this tree at rc.3 packaging time.
+All results in this table were measured on this tree. Counts include the A-10 remediation
+landed after rc.3 was packaged; each profile was measured in an environment matching its CI job
+rather than in a single developer environment.
 
 | Gate | Result | Evidence |
 |---|---|---|
-| Core profile | PASS | 94 tests; 0 failures, 0 errors. 6 skips: the API surface tests require the runtime extra, which the core profile deliberately does not install |
-| Runtime profile | PASS | 94 tests with FastAPI/Pydantic/HTTPX present; 0 failures, 0 errors, 0 skips |
+| Core profile | PASS | 107 tests; 0 failures, 0 errors. 6 skips: the API surface tests require the runtime extra, which the core profile deliberately does not install |
+| Runtime profile | PASS | 107 tests with FastAPI/Pydantic/HTTPX present; 0 failures, 0 errors, 0 skips |
 | Clean extraction | PASS | `unittest discover -s tests` succeeds without prior install |
 | Offline install/import smoke | PASS | PEP 517 wheel built with `--no-build-isolation`; `parallax_omega` imported as `1.0.0rc3` |
 | Behavioral bank schema | SCHEMA_PASS | 74 cases, 16 categories, 21 control references |
 | Behavioral model execution | NOT RUN | no target model or surface was invoked |
 | Secret-shaped value scan | PASS | no OpenAI-key, JWT, private-key, or AWS-key patterns |
-| Package structure | PASS | 156 repository files; 154 ledger entries (`SHA256SUMS` and `MANIFEST.json` exclude themselves); 10 knowledge files, 7 Skills, policy schemas, adapters, runbooks, assurance case |
+| Package structure | PASS | 158 repository files; 156 ledger entries (`SHA256SUMS` and `MANIFEST.json` exclude themselves); 10 knowledge files, 7 Skills, policy schemas, adapters, runbooks, assurance case |
 | Dependency lock resolution | PASS | `uv==0.10.0` (the version `[tool.uv] required-version` pins); 82 packages; `uv lock --check` clean |
 | Hashed install | PASS | `pip install --require-hashes -r constraints/dev.lock` succeeds in a clean virtualenv; 1158 hashes across `all.lock` |
 | Lock export reproducibility | PASS | re-export to a different path is byte-identical under `cmp`; 3.11 and 3.12 exports agree |
@@ -36,7 +38,7 @@ All results in this table were measured on this tree at rc.3 packaging time.
 | Archive/manifest logic | PASS | directory round-trip, tamper detection, case-fold collision, and VCS-metadata exclusion regression tests |
 | Static Python parse/compile | PASS | all Python sources parse; compile pass performed |
 | Ruff lint | PASS | `ruff check runtime tests scripts agents_sdk adapters` clean under ruff 0.16.0 |
-| Mypy strict | PASS | `mypy runtime/parallax_omega` clean across 11 source files |
+| Mypy strict | PASS | `mypy runtime/parallax_omega` clean across 12 source files |
 | Agents SDK import/runtime | DEPENDENCY_MISSING | `agents` package unavailable locally |
 | MCP import/runtime/OAuth | DEPENDENCY_MISSING | third-party `mcp` package unavailable locally; namespace collision was removed |
 
@@ -139,11 +141,41 @@ stays visible:
 
 - **A-07** receipt chains remain tail-truncatable; removing trailing receipts still verifies.
   Sequence numbers, length checkpoints, keyed hashing, and persistence are outstanding.
-- **A-10** the memory sensitivity label is still compared without normalization, so
-  whitespace-padded, case-varied, and homoglyph spellings bypass the prohibited set. The label
-  also remains caller-declared, with no content-based detection.
 - **A-03, A-04, A-05, A-11, A-13 through A-20** are unchanged from the audit's P1–P3 plan
   except where a repair above happens to cover them.
+
+**A-10 is now closed** — see the section below. It was open in rc.3 as packaged and was
+remediated afterwards.
+
+## A-10 remediation: memory sensitivity classification
+
+`runtime/parallax_omega/sensitivity.py` replaces the single bypassable comparison with two
+independent gates, because the finding had two independent causes.
+
+*Label normalization.* The prohibited-label check was `sensitivity.lower() in PROHIBITED`,
+which the audit defeated with `" secret"`, `"SECRET "`, a trailing zero-width space, and the
+Cyrillic homoglyph `"ѕecret"`. Labels are now NFKC-normalized, stripped of Unicode `Cc`/`Cf`
+characters — U+200B survives both NFKC and `str.strip`, so removing it needs to be explicit —
+then stripped and case-folded. A label that is still non-ASCII after that is a confusable
+spelling and is refused outright rather than compared, since NFKC does not fold Cyrillic to
+Latin. An empty-after-normalization label is refused rather than treated as benign.
+
+*Content detection.* Normalization alone cannot help, because the label is caller-declared: a
+model under injection simply declares `"normal"`. `detect_credentials` therefore inspects the
+payload regardless of the declared label, using the same credential shapes
+`scripts/secret_scan.py` applies to release artifacts, so a value refused at the memory
+boundary is also refused at packaging. This also reaches the MCP surface, which hardcodes
+`sensitivity="normal"` and could not otherwise trigger the label check at all — a partial
+mitigation of A-11, not a full one.
+
+Detection is deliberately limited to credential shapes, which are precise and low
+false-positive. It is **not** a general personal-data classifier; the `medical`, `intimate`,
+and `private-third-party` labels still depend on an honest caller, and content-based detection
+of those categories remains a deployment responsibility.
+
+Covered by 13 tests in `tests/test_sensitivity.py`, including every spelling the audit used.
+The credential fixtures are assembled at import time rather than written as literals, so
+`secret_scan.py` stays strict instead of gaining an exemption for `tests/`.
 
 ## Live-system evidence and non-mutations
 

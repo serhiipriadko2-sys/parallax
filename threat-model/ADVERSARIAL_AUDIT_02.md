@@ -32,7 +32,7 @@ untrusted input field. 19 findings: 2 Critical, 11 High, 5 Medium, 1 Low.
 | A-07 | Receipt chain is unkeyed and tail-truncatable | Receipt forgery | High | Confirmed |
 | A-08 | No deployed surface emits receipts at all | Receipt forgery | High | Confirmed |
 | A-09 | Consent replay registry is in-process; TOCTOU double-write | Memory replay | High | Confirmed |
-| A-10 | Sensitivity classifier bypassable by whitespace/homoglyph | Memory poisoning | High | Confirmed |
+| A-10 | Sensitivity classifier bypassable by whitespace/homoglyph | Memory poisoning | High | Confirmed — **remediated after rc.3**, see `QC_REPORT.md` |
 | A-11 | MCP surface is strictly weaker than the HTTP surface | MCP boundary abuse | High | Confirmed |
 | A-13 | No signature or attestation on ledger or commits | Supply chain | High | Confirmed |
 | A-14 | Unpinned actions and dependencies; constraints file unused | Dependency attack | High | Confirmed |

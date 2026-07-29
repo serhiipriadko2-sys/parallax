@@ -9,7 +9,7 @@
     "workspace_agent": "agent/WORKSPACE_AGENT_INSTRUCTIONS.md"
   },
   "eval_cases": 74,
-  "file_count_ledger": 154,
+  "file_count_ledger": 156,
   "knowledge_files": 10,
   "name": "parallax",
   "schema_version": "2.0",
@@ -17,6 +17,6 @@
   "skill_archives": 7,
   "skills": 7,
   "status": "locally-verified-packaged-not-deployed-not-verified-live",
-  "total_bytes_ledger": 1036649,
+  "total_bytes_ledger": 1047771,
   "version": "1.0.0-rc.3"
 }
